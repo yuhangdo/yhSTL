@@ -22,7 +22,7 @@ namespace yhstl
 		typedef value_type* pointer;
 		typedef value_type* iterator;
 		typedef value_type& reference;
- 		typedef size_t size_type;
+		typedef size_t size_type;
 		typedef ptrdiff_t difference_type;   //后续得添加一个iterator类
 
 	protected:
@@ -59,7 +59,7 @@ namespace yhstl
 		vector(int n, const T& value) { fill_initialize(n, value); };
 		vector(long n, const T& value) { fill_initialize(n, value); };
 		explicit vector(size_type n) { fill_initialize(n, T()); };  //使用explicit，不能进行隐式构造函数，使用T()创建一个临时对象
-
+		void insert(iterator position, size_type n, const T& x);
 		~vector()
 		{
 			destory(start, finish);  //后面需要自己实现，把destory放在一个头文件中
@@ -67,7 +67,7 @@ namespace yhstl
 		}
 		reference front() { return *begin(); }  //返回第一个元素
 		reference back() { return *(end() - 1); } //返回最后一个元素，思路是尾后迭代器-1,
-		void insert(iterator position,size_type n,const T&x);   //先声明，一会儿定义
+		void insert(iterator position, size_type n, const T& x);
 		void push_back(const T& x)   //将元素插入尾端
 		{
 			if (finish != end_of_storage)  //先判断当前分配空间是否有剩余
@@ -92,7 +92,7 @@ namespace yhstl
 			destroy(finsh);  //跟pop_back操作流程差不多
 			return position;   //erase返回的是删除之后这个位置迭代器
 		}
-		void resize(size_type new_size,const T&x) //分两种情况，一种比当前size大，一种比当前size小
+		void resize(size_type new_size, const T& x) //分两种情况，一种比当前size大，一种比当前size小
 		{
 			if (new_size < size()) erase(begin() + new_size, end());
 			else insert(end(), new_size - size(), x);  //insert是algorithm头文件实现的泛型算法，用于容器
@@ -101,6 +101,7 @@ namespace yhstl
 		{
 			resize(new_size, T());  //调用resize（new_size，x)来实现
 		}
+		
 		void clear()    //清空容器
 		{
 			erase(begin(), end());   //其实就是调用eraseAPI 
@@ -113,7 +114,7 @@ namespace yhstl
 			uninitialized_fill_n(result, n, x);  //全局函数
 			return result;
 		}
-		
+
 		void insert_aux(iterator position, const T& x)  //这个函数是vector最重点的函数,用于动态扩展空间
 		{
 			if (finish != end)   //还有后备空间，那直接构造呗
@@ -160,7 +161,8 @@ namespace yhstl
 		}
 
 	};
-	template <class T>
+	//20220920 修改insert类，使其变为vector的成员函数，只是是在外部定义
+	template <class T> 
 	void vector<T>::insert(iterator position, size_type n, const T& x)
 	{
 		if (n != 0)   //当n不等于0时，才进行以下操作
@@ -172,7 +174,7 @@ namespace yhstl
 				const size_type elems_after = finish - position;  //注意是const
 				iterator old_finish = finish;
 				if (elems_after > n)   //如果position之后的现有个数大于n
-				{	
+				{
 					//这个板块主要是先把[finish-elems_after，finish]的元素在finish+n构造
 					// 其次是把原vector的position+n到finish-n的元素用，copy_backward到position
 					//接下来这个copy函数是实现将在[finish,finish+n]区域构造出[finish-n,finish]的元素
@@ -207,6 +209,7 @@ namespace yhstl
 					//再将旧vector position之后的元素复制到新vector中
 					new_finish = uninitialized_copy(position, finish, new_finish);
 				}
+#ifdef STL_USE_EXCEPTION     //学习这种异常处理机制->在一个大的软件工程里面，可能会有多个文件同时包含一个头文件，当这些文件编译链接成一个可执行文件上时，就会出现大量“重定义”错误。在头文件中使用#define、ifndef、ifdef、endif能避免头文件重定义。
 				catch (...)
 				{
 					//如有异常发生，就实现commit or rollback
@@ -214,6 +217,7 @@ namespace yhstl
 					data_allocator::deallocator(new_start, len);
 					throw;
 				}
+#endif
 				//以下清除旧vector
 				destroy(start, finish);
 				deallocate();
@@ -227,6 +231,5 @@ namespace yhstl
 	}
 
 
-
-}
+}  //namespace yhstl
 #endif // !_YHSTL_VECTOR_H_
