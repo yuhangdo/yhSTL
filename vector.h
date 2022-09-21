@@ -8,9 +8,9 @@
 //Array是静态空间，一旦配置就不能改变;Vector是动态空间，会自行扩充空间以容纳新元素。
 
 //20220918  弄完vector，先弄基础的，比如全局的constructor和destroy等，还有copy等
-//注意一定要加simple_alloc这个类
 //20220918  23:18 开始今晚的项目  实现了insert操作
-#include <iterator>
+#include "iterator.h"
+#include"allocator.h"
 namespace yhstl
 {
 	template <class T>
@@ -26,7 +26,7 @@ namespace yhstl
 		typedef ptrdiff_t difference_type;   //后续得添加一个iterator类
 
 	protected:
-		typedef simple_alloc<value_type, Alloc>  data_allocator;  //后续将增加simple_alloc类
+		typedef yhstl::allocator<T>  data_allocator;  //后续将增加simple_alloc类
 		iterator start;     //表示当前使用空间的头
 		iterator finish;	//表示当前使用空间的尾，注意表示的是尾后
 		iterator end_of_storage;   //表示当前可用空间的尾
