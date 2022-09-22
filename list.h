@@ -1,9 +1,12 @@
 #ifndef _YHSTL_LIST_H_
 #define _YHSTL_LIST_H_
 //20220922 开始做list类
+//20220923 主要完善list的内存构造与管理，加了push_back函数
 //list类其实是一个环形双向链表，内含前后指针以及data数据
 //list突出节点的概念
 #include "iterator.h"
+#include"allocator.h"
+#include "construct.h"
 namespace yhstl
 {
 	//先做list节点的设计，包含前后指针和data数据
@@ -88,9 +91,84 @@ namespace yhstl
 	public:
 		typedef list_node*		 link_type;
 		typedef _list_iterator   iterator;    //20220922 0:05 今天就到这儿吧，加油
+		typedef iterator::size_type   size_type;       //以下是类中的嵌套型别定义
+		typedef iterator::reference	  reference;
+		typedef iterator::value_type  value_type;
+		typedef iterator::pointer	  pointer;
+		typedef iterator::difference_type   difference_type;
+	public:
+		//list的构造与内存管理
+
+		//专属空间配置器，每次只分配一个节点大小
+		typedef allocator<list_node>  list_node_allocator;
+		//list可以有很多构造函数，可以拿默认构造函数做参考
+		//默认构造函数  可构造出空list
+		list() { empty_initialize(); }      //empty...函数在下面实现
+
+
+		//插入
+		void push_back(const T& x)
+		{
+			insert(end(), x);
+		}
+	protected:
+		//配置一个空间大小并传回
+		link_type get_node() { return list_node_allocator::allocate(); }
+		//释放一个节点
+		void put_node(link_type p) { return list_node_allocator::deallocate(p); }
+
+		//产生一个节点，并配有元素值      先分配空间，再构造
+		link_type create_node(const T& x)
+		{
+			link_type p = get_node();
+			construct(&p->data, x); 
+			return p;
+		}
+		//析构并释放一个节点			  先析构，再释放空间
+		void destroy_node(link_type p)
+		{
+			destroy(&p->data);
+			put_node();
+		}
+  
+		//实现空链表的默认构造函数    是构造双向环形链表
+		void empty_initialize()
+		{
+			node = get_node();    //分配一个链表节点空间，并让node指向它
+			node->next = node;	  //令这个节点头尾指向自己，不设元素值
+			node->prev = node;
+		}
+
+		//insert函数的实现  insert是一个重载函数有多种形式，下面这种满足 push_back函数的需求
+		iterator insert(iterator position, const T& x)
+		{
+			link_type tmp = create_node(x);   //先创建一个临时节点，并构造元素x
+			//调整双向指针，把这个tmp节点插入原链表尾部
+			//下面是双向链表的正常逻辑，改变四个指向
+			tmp->next = position.node;  
+			tmp->prev = position.node->prev;   
+			(link_type(position.node->prev)->next = tmp;
+			positon.node->prev = tmp;
+			return tmp;
+		}
 
 	protected:
 		link_type	node;
+
+
+	public:
+		iterator begin() { return (link_type)((*node)->next) }
+		iterator end() { return node; }
+		bool empty()const  {return node->next==node}
+		size_type  size() const {
+			size_type result = 0;
+			distance(begin(), end(),result);    //全局函数，在iterator头文件中实现
+			return result;
+		}
+		//取头结点中的元素
+		reference front() const { return *begin(); }
+		//取尾结点的元素
+		reference back() const { return *(--end()); }
 	};
 
 
