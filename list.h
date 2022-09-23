@@ -2,6 +2,8 @@
 #define _YHSTL_LIST_H_
 //20220922 开始做list类
 //20220923 主要完善list的内存构造与管理，加了push_back函数
+//20220923 新加push_front,erase,pop_front,pop_back等操作
+//20220924 sort未完善，等白天完善
 //list类其实是一个环形双向链表，内含前后指针以及data数据
 //list突出节点的概念
 #include "iterator.h"
@@ -111,6 +113,157 @@ namespace yhstl
 		{
 			insert(end(), x);
 		}
+
+		//插入一个节点，作为头结点
+		void push_front(const T& x) { insert(begin(), x); }
+
+		//移除迭代器position所指节点,然后返回这个位置之后的元素
+		iterator erase(iterator position)
+		{
+			link_type next_node = link_type(position.node->next);
+			link_type prev_node = link_type(position.node->prev);
+			prev_node->next = next_node;
+			next_node->prev = prev_node;
+			destroy_node(position.node);
+			return iterator(next_node);
+		}
+
+		//移除头节点
+		void pop_front()
+		{
+			erase(begin());
+		}
+		//移除尾结点  其实就注意一下end是尾后迭代器的概念
+		void pop_back() 
+		{
+			iterator tmp = end();
+			erase(--tmp);
+		}
+		//清空所有节点   
+		void clear()
+		{
+			link_type cur = (link_type)node->next;  //以此找到begin
+			while (cur != node)  //环形链表以此为判断遍历结束依据，开始遍历咯
+			{
+				link_type tmp = cur;
+				cur = (link_type)cur->next;
+				destroy_node(tmp);  //遍历一下，销毁并释放一个节点
+			}
+			//恢复node原始状态
+			node->next = node;
+			node->prev = node;
+		}
+
+		//将数值为value的所有元素移除   实现思路就一个简单的遍历
+		void remove(const T& value)
+		{
+			iterator first = begin();
+			iterator last = end();
+			while (first != last)
+			{
+				iterator next = first;
+				++next;
+				if (*first == value) erase(first);
+				first = next;
+			}
+		}
+
+		//移除数值相同的连续元素，注意，只有连续且相同的元素才会被移除，最后只剩一个
+		void unique()
+		{
+			iterator frist = begin();
+			iterator last = end();
+			if (first == last) return;  //空链表直接返回
+			iterator next = first;
+			while (++next != last)   //这样设计很便捷，直接用++next!=last作为判断条件
+			{
+				if (*first == *next) erase(next);  //如果相邻两节点相同，则移除next
+				else first = next;		//不相同，则更新first为next
+				next = first;	 //更新next节点
+			}
+		}
+
+		//list特有的splice接合操作，其实是封装了transfer操作  下面是诸多重载splice操作
+		void splice(iterator position, list&x)
+		{
+			if (!x.empty()) transfer(transfer(position, x.begin(), x.end()));
+		}
+		void splice(iterator position, list&, iterator i)   //把i迭代器所指接到position前面
+		{
+			iterator j = i;
+			j++;
+			if (i == position || j == position) return;  //i跟position冲突或i本来就在position前面直接返回！
+			transfer(position, i, j);  //j主要是用来维护右区间，左闭右开嘛
+		}
+
+		//list特有的merge操作，同样是封装了transfer
+		void merge(list& x)
+		{
+			iterator first1 = begin();
+			iterator last1 = end();
+			iterator first2 = x.begin();
+			iterator last2 = x.end();
+
+			//注意merge前提是两个链表都是有序链表（从小到大）
+			//其实list的merge操作是用到了归并排序的知识
+			while (first1 != last1 && first2 != last2)   
+			{
+				if (*first2 < *first1)    //注意merge操作是调用merge的链表上进行的，所以是把第二个链表接到这个调用对象上
+				{
+					iterator next = first2;
+					transfer(first1, first2, ++next);
+					first2 = next;
+				}
+				else ++first1;
+				
+			}
+			//最后如果list2还存在，直接全部迁移到list2的last前
+			if (first2 != last2) transfer(last1, first2, last2);  //STL源码剖析，该行代码放在while循环里了			
+		}   
+
+		//翻转链表，reverse将*this的内容逆向重置
+		void reverse()
+		{
+			if (node->next = node || link_type(node->next)-> == node) return;  //链表为空或只有一个元素，直接返回
+			iterator first = begin();
+			++first;
+			while (first != end())
+			{
+				iterator old = first;
+				++first;
+				transfer(begin(), old, first);
+			}
+		}
+
+		//list不能使用STL的sort，必须要创建自己的sort成员函数
+		//list的sort函数使用快排 
+		void  sort()
+		{
+			if (node->next = node || link_type(node->next)-> == node) return;  //链表为空或只有一个元素，直接返回
+			//需要一些新的list，作为中介数据存放区
+			list carry;
+			list counter[64];
+			int fill = 0;
+
+			while (!empty())
+			{
+				carry.splice(carry.begin(), *this, begin());
+				int i = 0;
+				while (i < fill && !counter->empty())
+				{
+					counter[i].merge(carry);
+					carry.swap(counter[i++]);
+				}
+				carry.swap(counter[i]);
+				if (i == fill) ++fill;
+			}
+
+			for (int i = 1; i < fill; ++i)
+			{
+				counter[i].merge(counter[i - 1]);
+			}
+			swap(counter[fill - 1]);
+		}
 	protected:
 		//配置一个空间大小并传回
 		link_type get_node() { return list_node_allocator::allocate(); }
@@ -147,13 +300,31 @@ namespace yhstl
 			//下面是双向链表的正常逻辑，改变四个指向
 			tmp->next = position.node;  
 			tmp->prev = position.node->prev;   
-			(link_type(position.node->prev)->next = tmp;
+			(link_type)(position.node->prev)->next = tmp;
 			positon.node->prev = tmp;
 			return tmp;
 		}
 
+		//list内部有个所谓的迁移操作：将某连续范围的元素迁移到某个特定位置之前
+		//将[first,last)(前闭后开)的所有元素迁移到position之前
+		//这个函数为list的特色函数
+		void transfer(iterator position, iterator first, iterator last)
+		{
+			if (position != last)
+			{
+				//下面七行的代码的顺序很有讲究，要注意哦！
+				(*(link_type)((*last.node).prev)).next = position.node;  //尾部节点next指position
+				(*(link_type)((*first.node).prev)).next = last.node;	 //first前节点的next指向last（last为开区间，不参与）
+				(*(link_type)((*position.node).prev)).next = first.node; //position前节点的next指向first
+				link_type tmp = link_type((*position.node)->prev);       //设置一临时节点指向position前节点
+				(*position.node)->prev = (*last.node)->prev;			 //positon的prev指向last的前节点
+				(*last.node).prev = (*first.node).prev;				     //last节点的prev指向first的prev
+				(*first.node).prev = tmp;						         //first的prev指向原position的前节点
+			}
+		}
+		
 	protected:
-		link_type	node;
+		link_type	node;   //关键节点元素
 
 
 	public:
@@ -169,6 +340,8 @@ namespace yhstl
 		reference front() const { return *begin(); }
 		//取尾结点的元素
 		reference back() const { return *(--end()); }
+
+
 	};
 
 
