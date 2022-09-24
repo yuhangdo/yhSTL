@@ -4,11 +4,13 @@
 //20220923 主要完善list的内存构造与管理，加了push_back函数
 //20220923 新加push_front,erase,pop_front,pop_back等操作
 //20220924 sort未完善，等白天完善
+//20220924 来完善sort函数了！这个函数很重要 还有swap函数
 //list类其实是一个环形双向链表，内含前后指针以及data数据
 //list突出节点的概念
 #include "iterator.h"
 #include"allocator.h"
 #include "construct.h"
+#include "utility.h"
 namespace yhstl
 {
 	//先做list节点的设计，包含前后指针和data数据
@@ -197,6 +199,7 @@ namespace yhstl
 		}
 
 		//list特有的merge操作，同样是封装了transfer
+		//merge操作是引用传递，所以最后这个参数链表会变为空链表
 		void merge(list& x)
 		{
 			iterator first1 = begin();
@@ -235,34 +238,42 @@ namespace yhstl
 			}
 		}
 
+		//list的swap函数，便于下面实现sort函数
+		void  swap(list& rhs) noexcept
+		{
+			yhstl::swap(node, rhs.node);
+			yhstl::swap(size, rhs.size);
+		}
+
 		//list不能使用STL的sort，必须要创建自己的sort成员函数
 		//list的sort函数使用快排 
 		void  sort()
 		{
 			if (node->next = node || link_type(node->next)-> == node) return;  //链表为空或只有一个元素，直接返回
 			//需要一些新的list，作为中介数据存放区
-			list carry;
-			list counter[64];
+			list carry;    //carry链表起到搬运的作用
+			list counter[64];  //其中对于counter[i]里面最多的存储数据为2^(i+1)个节点,若超出则向高位进位即counter[i+1]
 			int fill = 0;
 
 			while (!empty())
 			{
-				carry.splice(carry.begin(), *this, begin());
+				carry.splice(carry.begin(), *this, begin());  //把当前链表的头结点，放在carry链表头
 				int i = 0;
-				while (i < fill && !counter->empty())
+				//while判断条件为i<fill且counter链表非空
+				while (i < fill && !counter->empty())   //这个内部while循环实现不足当counter[0]的数据个数等于2时，将counter[0]中的数据转移到counter[1]...从counter[i]转移到counter[i+1],直到counter[fill]中数据个数达到2^(fill+1)个
 				{
-					counter[i].merge(carry);
-					carry.swap(counter[i++]);
-				}
-				carry.swap(counter[i]);
-				if (i == fill) ++fill;
+					counter[i].merge(carry);    //把carry链表合并到counter[i]链表中
+					carry.swap(counter[i++]);	//交换carry和counter[i]链表的内容，并i++
+				}								
+				carry.swap(counter[i]);   //carry和counter[i]交换
+				if (i == fill) ++fill;    //如果while循环是因为i==fill退出的，则更新fill
 			}
 
 			for (int i = 1; i < fill; ++i)
 			{
-				counter[i].merge(counter[i - 1]);
+				counter[i].merge(counter[i - 1]);  //把低位不满足进位的剩余数据全部有序的合并到上一位
 			}
-			swap(counter[fill - 1]);
+			swap(counter[fill - 1]);	//最后把这个链表与当前链表交换
 		}
 	protected:
 		//配置一个空间大小并传回
