@@ -3,8 +3,10 @@
 //20220924  今日开始deque容器实现  先做部分迭代器
 //20220926  最近需要准备开题，finish 迭代器部分
 //20220927  开始deque的数据结构
+//20220930  回顾deque且处理一些细节
 #include"iterator.h"
 #include"allocator.h"
+
 namespace yhstl
 {
 	//一个全局函数：_deque_buf_size 来决定deque的缓冲区大小
@@ -243,16 +245,16 @@ namespace yhstl
 		
 
 		//push_back()
-		void push_back(const value_type& t) {
+		void push_back(const value_type& t) {  //只要cur处于last-1，就需要调用push_back_aux
 			if (finish.cur != finish.last - 1) {
-				//最后尚有一个以上的备用空间
+				//最后尚有一个以上的备用空间  
 				//直接在备用空间上进行元素的构造
 				data_allocator::allocator<T>::construct(finish.cur, t);
 				//调整最后缓冲区的使用状态
 				++finish.cur;
 			}
 			else {
-				//最后缓冲区已经 无(或者只剩下一个)元素的备用空间
+				//最后缓冲区已经 无(或仅有一个)元素的备用空间
 				push_back_aux(t);
 			}
 		}
@@ -270,7 +272,7 @@ namespace yhstl
 				finish.cur = finish.first;      //设定finish的状态
 			}
 			catch (std::exception) {
-				data_allocator::allocator<T>::deallocate(*(finish.node + 1));
+				data_allocator::allocator<T>::deallocate(*(finish.node + 1)); //commit or rollback机制
 			}
 		}
 
@@ -472,7 +474,7 @@ namespace yhstl
 			}
 		}
 
-		//在某个点之前插入一个元素，并设定其值
+		//在某个点之前插入一个元素，并设定其值  有很多重载版本，下面这个是最重要的
 		iterator insert(iterator position, const value_type& x) {
 			if (position.cur == start.cur) { //如果插入点是deque的最前端
 				push_front(x);
