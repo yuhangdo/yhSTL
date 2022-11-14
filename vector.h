@@ -9,6 +9,7 @@
 
 //20220918  弄完vector，先弄基础的，比如全局的constructor和destroy等，还有copy等
 //20220918  23:18 开始今晚的项目  实现了insert操作
+//20221111  复习vector，最重要的是要了解如何配置空间，还有插入函数的几种情况
 #include "iterator.h"
 #include"allocator.h"
 namespace yhstl

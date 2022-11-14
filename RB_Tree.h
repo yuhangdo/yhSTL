@@ -175,8 +175,8 @@ namespace yhstl
         typedef value_type& reference;
         typedef const value_type& const_reference;
         typedef rb_tree_node* link_type;
-        typedef std::size_t size_type;
-        typedef std::ptrdiff_t difference_type;
+        typedef size_t size_type;
+        typedef ptrdiff_t difference_type;
     protected:
         link_type get_node() { return rb_tree_node_allocator::allocate(); }
         void put_node(link_type p) { return rb_tree_node_allocator::deallocate(p); }
@@ -206,9 +206,9 @@ namespace yhstl
     protected:
         //RB-tree只使用三笔数据表现
         size_type node_count; //追踪记录树的大小 (节点的数量)
-        link_type header;     //实现上的小技巧
-        Compare key_compare;  //节点之间的键值大小的比较准则. 应该会是一个function object
-        //以下三个函数用于方便获取header的成员
+        link_type header;     //实现上的小技巧  这个很重要
+        Compare key_compare;  //节点之间的键值大小的比较准则. 应该会是一个function object 函数对象
+        //以下三个函数用于方便获取header的成员  header真是一个有趣的实现
         link_type& root() const { return (link_type&)header->parent; }
         link_type& left_most() const { return (link_type&)header->left; }
         link_type& right_most() const { return (link_type&)header->right; }

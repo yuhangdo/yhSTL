@@ -5,6 +5,7 @@
 //20220923 新加push_front,erase,pop_front,pop_back等操作
 //20220924 sort未完善，等白天完善
 //20220924 来完善sort函数了！这个函数很重要 还有swap函数
+//20221111 复习list，体会list设计的精妙
 //list类其实是一个环形双向链表，内含前后指针以及data数据
 //list突出节点的概念
 #include "iterator.h"
@@ -13,6 +14,8 @@
 #include "utility.h"
 namespace yhstl
 {
+	//先节点，后迭代器，后数据结构
+
 	//先做list节点的设计，包含前后指针和data数据
 	template <class T>
 	struct _list_node
@@ -59,7 +62,7 @@ namespace yhstl
 		//对迭代器加一，就是做前移操作     都是先做前置++，再用后置++调用前置++
 		self& operator++()			//返回自身，对自身自加一    是++i操作
 		{
-			node = (link_type)((*node).text);   //text返回之后节点的指针，还要强制类型转换为link_type类型
+			node = (link_type)((*node).next);   //text返回之后节点的指针，还要强制类型转换为link_type类型
 			return *this;
 		}		
 		self operator++(int)
@@ -109,7 +112,7 @@ namespace yhstl
 		//默认构造函数  可构造出空list
 		list() { empty_initialize(); }      //empty...函数在下面实现
 
-
+		//list的push_back和push_front都是通过调用 insert函数来实现的
 		//插入
 		void push_back(const T& x)
 		{
@@ -129,6 +132,7 @@ namespace yhstl
 			destroy_node(position.node);
 			return iterator(next_node);
 		}
+		//list的pop_front和pop_back都是通过 erase来实现的
 
 		//移除头节点
 		void pop_front()
@@ -225,6 +229,7 @@ namespace yhstl
 		}   
 
 		//翻转链表，reverse将*this的内容逆向重置
+		//这种思路可以学一下
 		void reverse()
 		{
 			if (node->next = node || link_type(node->next)-> == node) return;  //链表为空或只有一个元素，直接返回
@@ -246,7 +251,8 @@ namespace yhstl
 		}
 
 		//list不能使用STL的sort，必须要创建自己的sort成员函数
-		//list的sort函数使用快排 
+		//list的sort函数使用快排
+
 		void  sort()
 		{
 			if (node->next = node || link_type(node->next)-> == node) return;  //链表为空或只有一个元素，直接返回
@@ -260,7 +266,7 @@ namespace yhstl
 				carry.splice(carry.begin(), *this, begin());  //把当前链表的头结点，放在carry链表头
 				int i = 0;
 				//while判断条件为i<fill且counter链表非空
-				while (i < fill && !counter->empty())   //这个内部while循环实现不足当counter[0]的数据个数等于2时，将counter[0]中的数据转移到counter[1]...从counter[i]转移到counter[i+1],直到counter[fill]中数据个数达到2^(fill+1)个
+				while (i < fill && !counter[i]->empty())   //这个内部while循环实现不足当counter[0]的数据个数等于2时，将counter[0]中的数据转移到counter[1]...从counter[i]转移到counter[i+1],直到counter[fill]中数据个数达到2^(fill+1)个
 				{
 					counter[i].merge(carry);    //把carry链表合并到counter[i]链表中
 					carry.swap(counter[i++]);	//交换carry和counter[i]链表的内容，并i++
